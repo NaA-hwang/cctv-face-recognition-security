@@ -1,0 +1,40 @@
+# ===============================================================================
+# **중요: CCTV 용의자 식별 시스템 필수 라이브러리 목록**
+# ===============================================================================
+# 설치 명령어: pip install -r requirements.txt
+# ===============================================================================
+
+# Web Framework
+Flask==2.3.3
+Flask-CORS==4.0.0
+Werkzeug==2.3.7
+
+# ===============================================================================
+# **중요: AI/ML 라이브러리 - 핵심 구현 필요**
+# ===============================================================================
+# Computer Vision & AI - **InsightFace 설치 필요 (얼굴 인식 핵심)**
+opencv-python==4.8.1.78
+insightface==0.7.3  # **핵심: RetinaFace + ArcFace 모델**
+onnxruntime==1.16.1  # InsightFace 의존성
+numpy==1.24.3
+Pillow==10.0.1
+
+# Data Processing
+pandas==2.0.3
+sqlite3
+
+# Utilities
+python-dotenv==1.0.0
+requests==2.31.0
+tqdm==4.66.1
+
+# Development & Testing
+pytest==7.4.2
+pytest-cov==4.1.0
+black==23.9.1
+flake8==6.1.0
+
+# Optional: GPU Support (uncomment if using CUDA)
+# onnxruntime-gpu==1.16.1
+# torch==2.0.1+cu118
+# torchvision==0.15.2+cu118
