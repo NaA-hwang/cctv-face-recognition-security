@@ -13,10 +13,10 @@ import base64
 import json
 from datetime import datetime
 
-# 모델 관련 imports
-from models.face_detector import FaceDetector
-from models.face_recognizer import FaceRecognizer  
-from models.embedding_db import EmbeddingDatabase
+# 모델 관련 imports - TODO: 실제 구현 필요
+# from models.face_detector import FaceDetector
+# from models.face_recognizer import FaceRecognizer  
+# from models.embedding_db import EmbeddingDatabase
 
 # API 엔드포인트
 from api.upload import upload_bp
@@ -55,23 +55,24 @@ def initialize_models():
     print("🔧 AI 모델 초기화 중...")
     
     try:
+        # TODO: 실제 AI 모델 구현 필요
         # 1. 얼굴 검출 모델 (RetinaFace) 로드
-        face_detector = FaceDetector()
-        print("✅ RetinaFace 얼굴 검출 모델 로드 완료")
+        # face_detector = FaceDetector()
+        print("⚠️ RetinaFace 얼굴 검출 모델 - 미구현")
         
         # 2. 얼굴 인식 모델 (ArcFace) 로드  
-        face_recognizer = FaceRecognizer()
-        print("✅ ArcFace 얼굴 인식 모델 로드 완료")
+        # face_recognizer = FaceRecognizer()
+        print("⚠️ ArcFace 얼굴 인식 모델 - 미구현")
         
         # 3. 임베딩 데이터베이스 초기화
-        embedding_db = EmbeddingDatabase()
-        print("✅ 임베딩 데이터베이스 초기화 완료")
+        # embedding_db = EmbeddingDatabase()
+        print("⚠️ 임베딩 데이터베이스 - 미구현")
         
         # 4. 기본 용의자 데이터 로드
-        embedding_db.load_default_suspects()
-        print("✅ 기본 용의자 데이터 로드 완료")
+        # embedding_db.load_default_suspects()
+        print("⚠️ 기본 용의자 데이터 로드 - 미구현")
         
-        return True
+        return True  # 개발 모드에서는 True 반환
         
     except Exception as e:
         print(f"❌ 모델 초기화 실패: {str(e)}")
