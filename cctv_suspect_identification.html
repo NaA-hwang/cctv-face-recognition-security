@@ -17,6 +17,50 @@
             50% { box-shadow: 0 0 30px #ef4444, 0 0 40px #ef4444; }
         }
         
+        .detection-overlay {
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .video-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .bounding-box {
+            position: absolute;
+            border: 3px solid;
+            pointer-events: none;
+            border-radius: 4px;
+        }
+        
+        .bounding-box.criminal {
+            border-color: #FF0000;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+            animation: criminalPulse 1s infinite;
+        }
+        
+        .bounding-box.normal {
+            border-color: #00FF00;
+            box-shadow: 0 0 8px rgba(0, 255, 0, 0.3);
+        }
+        
+        .bounding-box.unknown {
+            border-color: #FFFF00;
+            box-shadow: 0 0 8px rgba(255, 255, 0, 0.3);
+        }
+        
+        @keyframes criminalPulse {
+            0%, 100% { 
+                border-color: #FF0000;
+                box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+            }
+            50% { 
+                border-color: #FF6666;
+                box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+            }
+        }
+        
         .toggle-switch {
             position: relative;
             display: inline-block;
@@ -65,6 +109,33 @@
         .detection-info {
             background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
             border-left: 4px solid #ef4444;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .detection-info h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .detection-info .info-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.75rem 1rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .detection-info .info-label {
+            font-weight: 500;
+            color: #374151;
+            min-width: 80px;
+        }
+        
+        .detection-info .info-value {
+            color: #1f2937;
         }
         
         .upload-container {
@@ -147,7 +218,7 @@
                             <div class="text-6xl">👤</div>
                         </div>
                         <div class="p-4">
-                            <h3 class="font-bold text-lg text-gray-800">순대국</h3>
+                            <h3 class="font-bold text-lg text-gray-800">윤정아</h3>
                             <div class="text-sm text-gray-600 space-y-1">
                                 <p><span class="font-medium">나이:</span> 54세</p>
                                 <p><span class="font-medium">성별:</span> 여성</p>
@@ -167,7 +238,7 @@
                             <div class="text-6xl">👤</div>
                         </div>
                         <div class="p-4">
-                            <h3 class="font-bold text-lg text-gray-800">하니짱</h3>
+                            <h3 class="font-bold text-lg text-gray-800">신종우</h3>
                             <div class="text-sm text-gray-600 space-y-1">
                                 <p><span class="font-medium">나이:</span> 28세</p>
                                 <p><span class="font-medium">성별:</span> 남성</p>
@@ -243,7 +314,7 @@
                             </div>
                         </div>
                         
-                        <div class="flex-1 bg-black rounded-lg overflow-hidden">
+                        <div class="flex-1 bg-black rounded-lg overflow-hidden video-container">
                             <video id="mainVideo" 
                                    class="w-full h-full object-contain" 
                                    controls 
@@ -298,16 +369,16 @@
                     </div>
 
                     <!-- 정보 패널 -->
-                    <div class="bg-white rounded-lg shadow-lg p-4 flex-1">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">감지 상세 정보</h3>
+                    <div class="bg-white rounded-lg shadow-lg p-6 flex-1">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-6">감지 상세 정보</h3>
                         
-                        <div id="detectionInfo" class="h-48 overflow-y-auto">
-                            <div class="text-sm text-gray-500 text-center py-8">
-                                <svg class="mx-auto h-8 w-8 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div id="detectionInfo" class="min-h-96 max-h-screen overflow-y-auto">
+                            <div class="text-sm text-gray-500 text-center py-12">
+                                <svg class="mx-auto h-10 w-10 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                                 </svg>
                                 <p>감지된 정보가 없습니다.</p>
-                                <p class="text-xs mt-1">필터를 활성화해 주세요.</p>
+                                <p class="text-xs mt-2">필터를 활성화해 주세요.</p>
                             </div>
                         </div>
                     </div>
@@ -428,6 +499,49 @@
                 videoCanvas.style.display = 'none';
                 document.body.appendChild(videoCanvas);
             }
+            
+            // 바운딩 박스 오버레이 캔버스 설정
+            const videoContainer = mainVideo.parentElement;
+            
+            // 기존 오버레이 캔버스 제거
+            const existingOverlay = videoContainer.querySelector('.detection-overlay');
+            if (existingOverlay) {
+                existingOverlay.remove();
+            }
+            
+            // 새 오버레이 캔버스 생성
+            const overlayCanvas = document.createElement('canvas');
+            overlayCanvas.className = 'detection-overlay';
+            overlayCanvas.style.position = 'absolute';
+            overlayCanvas.style.top = '0';
+            overlayCanvas.style.left = '0';
+            overlayCanvas.style.pointerEvents = 'none';
+            overlayCanvas.style.zIndex = '10';
+            
+            // 비디오 컨테이너에 relative 포지션 설정
+            if (getComputedStyle(videoContainer).position === 'static') {
+                videoContainer.style.position = 'relative';
+            }
+            
+            videoContainer.appendChild(overlayCanvas);
+            
+            // 비디오 크기에 맞춰 캔버스 크기 조정
+            function resizeOverlayCanvas() {
+                overlayCanvas.width = mainVideo.videoWidth || mainVideo.offsetWidth;
+                overlayCanvas.height = mainVideo.videoHeight || mainVideo.offsetHeight;
+                overlayCanvas.style.width = mainVideo.offsetWidth + 'px';
+                overlayCanvas.style.height = mainVideo.offsetHeight + 'px';
+            }
+            
+            // 초기 크기 설정
+            setTimeout(resizeOverlayCanvas, 100); // 비디오 로드 대기
+            
+            // 비디오 로드시 크기 재조정
+            mainVideo.addEventListener('loadedmetadata', resizeOverlayCanvas);
+            window.addEventListener('resize', resizeOverlayCanvas);
+            
+            // 전역 변수에 저장
+            window.detectionOverlay = overlayCanvas;
         }
         
         function captureVideoFrame() {
@@ -448,6 +562,103 @@
                 console.error('프레임 캡처 실패:', error);
                 return null;
             }
+        }
+        
+        function drawBoundingBoxes(detections) {
+            // 바운딩 박스 그리기
+            const overlayCanvas = window.detectionOverlay;
+            if (!overlayCanvas || !detections) return;
+            
+            const ctx = overlayCanvas.getContext('2d');
+            ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+            
+            detections.forEach((detection, index) => {
+                if (!detection.face_bbox) return;
+                
+                const [x, y, width, height] = detection.face_bbox;
+                const match = detection.suspect_match;
+                
+                // 범죄자는 빨간색, 일반인은 초록색, 알 수 없는 사람은 노란색
+                let boxColor = '#FFFF00'; // 기본: 노란색
+                let labelPrefix = '미확인';
+                let textColor = 'white';
+                
+                if (match) {
+                    if (match.is_criminal) {
+                        // 범죄자: 빨간색 + 깜빡이는 효과
+                        const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7; // 0.4~1.0 사이
+                        boxColor = `rgba(255, 0, 0, ${pulse})`;
+                        labelPrefix = '🚨 범죄자';
+                        textColor = '#FFB3B3'; // 연한 빨강
+                    } else {
+                        boxColor = '#00FF00'; // 일반인: 초록색  
+                        labelPrefix = '✅ 일반인';
+                        textColor = '#B3FFB3'; // 연한 초록
+                    }
+                }
+                
+                const confidence = detection.detection_confidence || 0;
+                
+                // 바운딩 박스 그리기 (두꺼운 테두리)
+                ctx.strokeStyle = boxColor;
+                ctx.lineWidth = match && match.is_criminal ? 5 : 3; // 범죄자는 더 두꺼운 테두리
+                ctx.strokeRect(x, y, width, height);
+                
+                // 범죄자인 경우 추가 외곽선
+                if (match && match.is_criminal) {
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x-3, y-3, width+6, height+6);
+                }
+                
+                // 배경 박스 (텍스트용)
+                const textHeight = 45;
+                const textWidth = Math.max(width, 220);
+                
+                // 그라데이션 배경
+                const gradient = ctx.createLinearGradient(x, y - textHeight, x, y);
+                if (match && match.is_criminal) {
+                    gradient.addColorStop(0, 'rgba(139, 0, 0, 0.9)'); // 어두운 빨강
+                    gradient.addColorStop(1, 'rgba(220, 20, 60, 0.9)'); // 밝은 빨강
+                } else {
+                    gradient.addColorStop(0, 'rgba(0, 100, 0, 0.9)'); // 어두운 초록
+                    gradient.addColorStop(1, 'rgba(34, 139, 34, 0.9)'); // 밝은 초록
+                }
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x, y - textHeight, textWidth, textHeight);
+                
+                // 텍스트 정보
+                ctx.fillStyle = textColor;
+                ctx.font = 'bold 16px Arial';
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                ctx.lineWidth = 2;
+                
+                let label = labelPrefix;
+                if (match && match.name) {
+                    label += ` ${match.name}`;
+                }
+                
+                // 텍스트에 외곽선 추가 (가독성 향상)
+                ctx.strokeText(label, x + 10, y - 25);
+                ctx.fillText(label, x + 10, y - 25);
+                
+                const confidenceText = `신뢰도: ${(confidence * 100).toFixed(1)}%`;
+                ctx.strokeText(confidenceText, x + 10, y - 8);
+                ctx.fillText(confidenceText, x + 10, y - 8);
+                
+                // 범죄자인 경우 경고 아이콘 추가
+                if (match && match.is_criminal) {
+                    ctx.fillStyle = 'yellow';
+                    ctx.font = '20px Arial';
+                    ctx.fillText('⚠️', x + width - 30, y - 15);
+                }
+                
+                // 인덱스 번호 표시
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText(`#${index + 1}`, x + 5, y + height - 5);
+            });
         }
         
         async function processRealtimeDetection() {
@@ -474,24 +685,32 @@
         
         function processDetectionResult(result) {
             // AI 모델의 감지 결과 처리
-            if (!result.detections || result.detections.length === 0) {
+            if (!result.recognition_results || result.recognition_results.length === 0) {
+                // 감지된 얼굴이 없으면 바운딩 박스 지우기
+                if (window.detectionOverlay) {
+                    const ctx = window.detectionOverlay.getContext('2d');
+                    ctx.clearRect(0, 0, window.detectionOverlay.width, window.detectionOverlay.height);
+                }
                 return;
             }
             
+            // 바운딩 박스 그리기
+            drawBoundingBoxes(result.recognition_results);
+            
             // 가장 높은 신뢰도의 감지 결과 사용
-            const bestDetection = result.detections.reduce((best, current) => 
-                current.match && current.match.similarity > (best.match?.similarity || 0) ? current : best
+            const bestDetection = result.recognition_results.reduce((best, current) => 
+                current.suspect_match && current.suspect_match.confidence > (best.suspect_match?.confidence || 0) ? current : best
             );
             
-            if (bestDetection.match && bestDetection.match.similarity > 0.6) {
-                const matchInfo = bestDetection.match;
+            if (bestDetection.suspect_match && bestDetection.suspect_match.confidence > 60) {
+                const matchInfo = bestDetection.suspect_match;
                 
-                if (matchInfo.is_thief) {
-                    // 절도범 감지!
+                if (matchInfo.is_criminal) {
+                    // 범죄자 감지!
                     triggerRealSuspectAlert(matchInfo);
                 } else {
                     // 일반인 감지
-                    updateDetectionInfo(`${matchInfo.name} 감지됨 - 위험 없음 (일반인, 신뢰도: ${(matchInfo.similarity * 100).toFixed(1)}%)`, false);
+                    updateDetectionInfo(`${matchInfo.name} 감지됨 - 위험 없음 (일반인, 신뢰도: ${matchInfo.confidence.toFixed(1)}%)`, false);
                 }
             }
         }
@@ -503,50 +722,43 @@
             
             // 상세 정보 표시
             const alertHtml = `
-                <div class="detection-info p-4 rounded-lg mb-4">
-                    <div class="flex items-center mb-3">
-                        <svg class="w-6 h-6 text-red-500 mr-2 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                <div class="detection-info">
+                    <div class="flex items-center mb-4">
+                        <svg class="w-6 h-6 text-red-500 mr-3 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                         </svg>
-                        <h4 class="text-red-700 font-bold text-lg">🚨 AI 절도범 감지!</h4>
+                        <h4 class="text-red-700 font-bold">🚨 AI 절도범 감지!</h4>
                     </div>
                     
-                    <div class="space-y-2 text-sm">
-                        <div class="grid grid-cols-3 gap-2">
-                            <span class="font-semibold text-gray-700">이름:</span>
-                            <span class="col-span-2 text-gray-900">${matchInfo.name}</span>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <span class="font-semibold text-gray-700">위험도:</span>
-                            <span class="col-span-2 text-red-600 font-bold">${matchInfo.risk_level.toUpperCase()}</span>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <span class="font-semibold text-gray-700">전과:</span>
-                            <span class="col-span-2 text-red-600 font-medium">${matchInfo.criminal_record.join(', ')}</span>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <span class="font-semibold text-gray-700">AI 신뢰도:</span>
-                            <span class="col-span-2 text-green-600 font-bold">${(matchInfo.similarity * 100).toFixed(1)}%</span>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <span class="font-semibold text-gray-700">감지시간:</span>
-                            <span class="col-span-2 text-gray-900">${new Date().toLocaleTimeString()}</span>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <span class="font-semibold text-gray-700">모델:</span>
-                            <span class="col-span-2 text-blue-600 font-medium">RetinaFace + ArcFace</span>
-                        </div>
+                    <div class="info-grid">
+                        <span class="info-label">이름:</span>
+                        <span class="info-value font-semibold">${matchInfo.name}</span>
+                        
+                        <span class="info-label">위험도:</span>
+                        <span class="info-value text-red-600 font-bold">${matchInfo.risk_level.toUpperCase()}</span>
+                        
+                        <span class="info-label">전과:</span>
+                        <span class="info-value text-red-600">${matchInfo.criminal_record.join(', ')}</span>
+                        
+                        <span class="info-label">AI 신뢰도:</span>
+                        <span class="info-value text-green-600 font-bold">${(matchInfo.similarity * 100).toFixed(1)}%</span>
+                        
+                        <span class="info-label">감지시간:</span>
+                        <span class="info-value">${new Date().toLocaleTimeString()}</span>
+                        
+                        <span class="info-label">AI 모델:</span>
+                        <span class="info-value text-blue-600">RetinaFace + ArcFace</span>
                     </div>
                     
-                    <div class="mt-4 flex space-x-2">
-                        <button class="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600 transition-colors">
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <button class="bg-red-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-600 transition-colors flex items-center">
                             🚨 긴급신고
                         </button>
-                        <button class="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 transition-colors">
+                        <button class="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600 transition-colors flex items-center">
                             📋 상세보기
                         </button>
-                        <button class="bg-yellow-500 text-white px-3 py-1 rounded text-xs hover:bg-yellow-600 transition-colors">
-                            📞 경찰신고
+                        <button class="bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-yellow-600 transition-colors flex items-center">
+                            📞 119 신고
                         </button>
                     </div>
                 </div>
@@ -656,9 +868,11 @@
                     } else {
                         // 모델이 준비되지 않은 경우 - 시뮬레이션 모드
                         updateDetectionInfo('⚠️ AI 모델 로딩 중... 시뮬레이션 모드로 전환', false);
-                        detectionTimeout = setTimeout(() => {
+                        
+                        // 시뮬레이션 모드 - 실시간 바운딩 박스
+                        detectionInterval = setInterval(() => {
                             simulateDetection();
-                        }, 5000);
+                        }, 200); // 200ms마다 실행하여 부드러운 움직임
                     }
                 });
                 
@@ -678,7 +892,7 @@
             // 1초마다 프레임 분석 (실제 운영시에는 성능에 따라 조정)
             detectionInterval = setInterval(() => {
                 processRealtimeDetection();
-            }, 1000);
+            }, 200); // 200ms마다 실행 (초당 5프레임)
         }
         
         function stopRealtimeDetection() {
@@ -695,18 +909,121 @@
                 detectionTimeout = null;
             }
             
+            // 바운딩 박스 지우기
+            if (window.detectionOverlay) {
+                const ctx = window.detectionOverlay.getContext('2d');
+                ctx.clearRect(0, 0, window.detectionOverlay.width, window.detectionOverlay.height);
+            }
+            
             clearSuspectAlert();
         }
         
         function simulateDetection() {
-            // 시뮬레이션 모드 - 기존 로직
+            // 시뮬레이션 모드 - 실시간 움직이는 바운딩 박스
             if (!isDetectionActive) return;
             
-            // 선택된 용의자가 절도범인 경우에만 알럿 발생
+            const videoWidth = mainVideo.offsetWidth;
+            const videoHeight = mainVideo.offsetHeight;
+            const currentTime = mainVideo.currentTime;
+            
+            // 시간에 따라 변화하는 다중 얼굴 시뮬레이션
+            const simulatedFaces = [];
+            
+            // 얼굴 1: 화면 왼쪽에서 오른쪽으로 이동하는 일반인
+            const face1Progress = (currentTime * 0.3) % 2; // 2초마다 반복
+            const face1X = (videoWidth * 0.1) + (videoWidth * 0.6 * (face1Progress > 1 ? 2 - face1Progress : face1Progress));
+            const face1Y = videoHeight * 0.3 + Math.sin(currentTime * 2) * 20;
+            
+            simulatedFaces.push({
+                face_bbox: [face1X, face1Y, videoWidth * 0.12, videoHeight * 0.16],
+                detection_confidence: 0.88 + Math.sin(currentTime * 3) * 0.05,
+                suspect_match: {
+                    suspect_id: 'normal01',
+                    name: '윤정아',
+                    confidence: 85 + Math.sin(currentTime * 2) * 10,
+                    is_criminal: false,
+                    risk_level: "low",
+                    category: "normal"
+                }
+            });
+            
+            // 얼굴 2: 원형 움직임의 일반인
+            const face2X = videoWidth * 0.6 + Math.cos(currentTime * 1.5) * videoWidth * 0.15;
+            const face2Y = videoHeight * 0.5 + Math.sin(currentTime * 1.5) * videoHeight * 0.1;
+            
+            simulatedFaces.push({
+                face_bbox: [face2X, face2Y, videoWidth * 0.1, videoHeight * 0.14],
+                detection_confidence: 0.82 + Math.cos(currentTime * 2.5) * 0.08,
+                suspect_match: {
+                    suspect_id: 'normal02',
+                    name: '신종우',
+                    confidence: 78 + Math.cos(currentTime * 1.8) * 12,
+                    is_criminal: false,
+                    risk_level: "low",
+                    category: "normal"
+                }
+            });
+            
+            // 선택된 용의자가 범죄자인 경우 범죄자 얼굴 추가
             if (selectedSuspect && selectedSuspect.isThief) {
-                triggerSuspectAlert();
+                // 얼굴 3: 화면 중앙에서 좌우로 움직이는 범죄자
+                const criminalX = videoWidth * 0.4 + Math.sin(currentTime * 2.2) * videoWidth * 0.2;
+                const criminalY = videoHeight * 0.2 + Math.cos(currentTime * 1.8) * videoHeight * 0.08;
+                
+                simulatedFaces.push({
+                    face_bbox: [criminalX, criminalY, videoWidth * 0.13, videoHeight * 0.18],
+                    detection_confidence: 0.91 + Math.sin(currentTime * 4) * 0.06,
+                    suspect_match: {
+                        suspect_id: 'criminal',
+                        name: selectedSuspect.name,
+                        confidence: 89 + Math.sin(currentTime * 3.5) * 8,
+                        is_criminal: true,
+                        risk_level: "high",
+                        category: "criminal"
+                    }
+                });
             } else {
-                updateDetectionInfo(`${selectedSuspect?.name || '알 수 없음'} 감지됨 - 위험 없음 (일반인)`, false);
+                // 일반인인 경우 추가 일반인 얼굴
+                const face3X = videoWidth * 0.2 + Math.sin(currentTime * 1.2) * videoWidth * 0.1;
+                const face3Y = videoHeight * 0.7 + Math.cos(currentTime * 0.8) * videoHeight * 0.05;
+                
+                simulatedFaces.push({
+                    face_bbox: [face3X, face3Y, videoWidth * 0.09, videoHeight * 0.12],
+                    detection_confidence: 0.79 + Math.cos(currentTime * 1.5) * 0.07,
+                    suspect_match: {
+                        suspect_id: 'normal03',
+                        name: '이지선',
+                        confidence: 81 + Math.cos(currentTime * 2.3) * 9,
+                        is_criminal: false,
+                        risk_level: "low",
+                        category: "normal"
+                    }
+                });
+            }
+            
+            // 시뮬레이션 결과 생성
+            const simulatedResult = {
+                success: true,
+                recognition_results: simulatedFaces
+            };
+            
+            // 바운딩 박스 그리기
+            drawBoundingBoxes(simulatedResult.recognition_results);
+            
+            // 범죄자가 감지된 경우 알럿 발생
+            const criminalDetected = simulatedFaces.some(face => 
+                face.suspect_match && face.suspect_match.is_criminal && face.suspect_match.confidence > 80
+            );
+            
+            if (criminalDetected) {
+                const criminalFace = simulatedFaces.find(face => face.suspect_match.is_criminal);
+                if (criminalFace && !document.querySelector('.detection-info')) {
+                    triggerSuspectAlert();
+                }
+            } else {
+                // 일반인만 감지된 경우
+                const detectedNames = simulatedFaces.map(face => face.suspect_match.name).join(', ');
+                updateDetectionInfo(`감지된 인원: ${detectedNames} - 모두 안전 (일반인)`, false);
             }
         }
 
@@ -727,7 +1044,7 @@
             
             // 텍스트 얼럿 - 감지 정보 업데이트
             const alertHtml = `
-                <div class="detection-info p-4 rounded-lg mb-4">
+                <div class="detection-info min-h-96 max-h-screen overflow-auto p-6 rounded-lg mb-4">
                     <div class="flex items-center mb-3">
                         <svg class="w-6 h-6 text-red-500 mr-2 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
@@ -735,7 +1052,7 @@
                         <h4 class="text-red-700 font-bold text-lg">!! 절도범 감지 !!</h4>
                     </div>
                     
-                    <div class="space-y-2 text-sm">
+                    <div class="info-grid">
                         <div class="grid grid-cols-3 gap-2">
                             <span class="font-semibold text-gray-700">이름:</span>
                             <span class="col-span-2 text-gray-900">${suspectDetails.name}</span>
@@ -762,15 +1079,15 @@
                         </div>
                     </div>
                     
-                    <div class="mt-4 flex space-x-2">
-                        <button class="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600 transition-colors">
-                            🚨 긴급신고
+                    <div class="mt-6 flex flex-wrap gap-3 justify-center">
+                        <button class="bg-red-500 text-white px-6 py-3 rounded-lg text-sm hover:bg-red-600 transition-colors shadow-md">
+                             긴급신고
                         </button>
-                        <button class="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 transition-colors">
-                            📋 상세보기
+                        <button class="bg-blue-500 text-white px-6 py-3 rounded-lg text-sm hover:bg-blue-600 transition-colors shadow-md">
+                             상세보기
                         </button>
-                        <button class="bg-yellow-500 text-white px-3 py-1 rounded text-xs hover:bg-yellow-600 transition-colors">
-                            📞 경찰신고
+                        <button class="bg-yellow-500 text-white px-6 py-3 rounded-lg text-sm hover:bg-yellow-600 transition-colors shadow-md">
+                             119 신고
                         </button>
                     </div>
                 </div>
@@ -795,24 +1112,24 @@
                     confidence: '94.7'
                 },
                 '2': {
-                    name: '순대국',
-                    age: '54세 여성', 
-                    features: '다듬지 않은 눈썹, 쉐프',
-                    criminal_record: '새치기 23회',
+                    name: '윤정아',
+                    age: '24세 여성', 
+                    features: '긴 머리, 대학생',
+                    criminal_record: '과제 표절 1회',
                     confidence: '88.2'
                 },
                 '3': {
-                    name: '하니짱',
+                    name: '신종우',
                     age: '28세 남성',
-                    features: '짧은 머리, 간호사',
-                    criminal_record: '골목길 무단횡단',
+                    features: '짧은 머리, 개발자',
+                    criminal_record: '코드 도용 2회',
                     confidence: '91.5'
                 },
                 '4': {
                     name: '이지선',
-                    age: '39세 여성',
-                    features: '흑발 긴머리, 운동선수',
-                    criminal_record: '밥도둑',
+                    age: '26세 여성',
+                    features: '웨이브 머리, 디자이너',
+                    criminal_record: '디자인 도용 1회',
                     confidence: '87.9'
                 }
             };

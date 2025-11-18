@@ -66,8 +66,22 @@ class DetectionResult:
 class ModernEmbeddingDB:
     """리팩토링된 임베딩 데이터베이스 관리 클래스"""
     
-    def __init__(self, db_path: str = "data/embeddings/face_recognition.db", 
-                 config_path: str = "data/suspects/metadata/suspect_profiles.json"):
+    def __init__(self, db_path: str = None, 
+                 config_path: str = None):
+        """
+        ModernEmbeddingDB 초기화
+        
+        Args:
+            db_path: SQLite 데이터베이스 파일 경로
+            config_path: 용의자 프로필 JSON 파일 경로
+        """
+        # 기본 경로 설정 (프로젝트 루트 기준)
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        
+        if db_path is None:
+            db_path = os.path.join(base_dir, "data", "embeddings", "face_recognition.db")
+        if config_path is None:
+            config_path = os.path.join(base_dir, "data", "suspects", "metadata", "suspect_profiles.json")
         """
         ModernEmbeddingDB 초기화
         
@@ -246,27 +260,27 @@ class ModernEmbeddingDB:
                 notes="절도범, 주요 타겟"
             ),
             SuspectProfile(
-                id="2", name="순대국", name_en="sundaeguk", age=54, gender="female",
-                occupation="쉐프", role="civilian", is_criminal=False, is_target=False,
-                risk_level="low", folder_name="sundaeguk",
-                criminal_record=["새치기 23회"],
-                features={"facial_features": "다듬지 않은 눈썹", "occupation": "쉐프"},
+                id="2", name="윤정아", name_en="yunjeonga", age=24, gender="female",
+                occupation="대학생", role="civilian", is_criminal=False, is_target=False,
+                risk_level="low", folder_name="yunjeonga",
+                criminal_record=["과제 표절 1회"],
+                features={"hair_style": "긴 머리", "occupation": "대학생"},
                 notes="일반인"
             ),
             SuspectProfile(
-                id="3", name="하니짱", name_en="hanijjang", age=28, gender="male",
-                occupation="간호사", role="civilian", is_criminal=False, is_target=False,
-                risk_level="low", folder_name="hanijjang",
-                criminal_record=["골목길 무단횡단"],
-                features={"hair_style": "짧은 머리", "occupation": "간호사"},
+                id="3", name="신종우", name_en="shinjongwoo", age=28, gender="male",
+                occupation="개발자", role="civilian", is_criminal=False, is_target=False,
+                risk_level="low", folder_name="shinjongwoo",
+                criminal_record=["코드 도용 2회"],
+                features={"hair_style": "짧은 머리", "occupation": "개발자"},
                 notes="일반인"
             ),
             SuspectProfile(
-                id="4", name="이지선", name_en="leejisun", age=39, gender="female",
-                occupation="운동선수", role="civilian", is_criminal=False, is_target=False,
+                id="4", name="이지선", name_en="leejisun", age=35, gender="female",
+                occupation="디자이너", role="civilian", is_criminal=False, is_target=False,
                 risk_level="low", folder_name="leejisun",
-                criminal_record=["밥도둑"],
-                features={"hair_style": "흑발 긴머리", "occupation": "운동선수"},
+                criminal_record=["디자인 도용 1회"],
+                features={"hair_style": "웨이브 머리", "occupation": "디자이너"},
                 notes="일반인"
             )
         ]
@@ -595,7 +609,8 @@ class ModernEmbeddingDB:
 def create_embedding_database(db_path: str = None) -> ModernEmbeddingDB:
     """임베딩 데이터베이스 인스턴스 생성"""
     if db_path is None:
-        db_path = "data/embeddings/face_recognition.db"
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        db_path = os.path.join(base_dir, "data", "embeddings", "face_recognition.db")
     return ModernEmbeddingDB(db_path)
 
 if __name__ == "__main__":
@@ -603,7 +618,9 @@ if __name__ == "__main__":
     print("🚀 Modern Embedding Database 테스트")
     
     # 데이터베이스 생성
-    db = create_embedding_database("data/embeddings/test_face_db.db")
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    test_db_path = os.path.join(base_dir, "data", "embeddings", "test_face_db.db")
+    db = create_embedding_database(test_db_path)
     
     # 용의자 정보 조회
     suspects = db.get_suspects_info()

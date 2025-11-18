@@ -5,6 +5,7 @@ InsightFace (RetinaFace + ArcFace) 모델 통합
 
 from flask import Flask, request, jsonify, render_template_string
 from flask_cors import CORS
+from flasgger import Swagger, swag_from
 import os
 import cv2
 import numpy as np
@@ -13,10 +14,8 @@ import base64
 import json
 from datetime import datetime
 
-# 모델 관련 imports - TODO: 실제 구현 필요
-# from models.face_detector import FaceDetector
-# from models.face_recognizer import FaceRecognizer  
-# from models.embedding_db import EmbeddingDatabase
+# 모델 관련 imports - BentoML 클라이언트 사용
+from bento_client import BentoMLClient
 
 # API 엔드포인트
 from api.upload import upload_bp
@@ -26,10 +25,58 @@ from api.suspects import suspects_bp
 app = Flask(__name__)
 CORS(app)
 
+# 전역 BentoML 클라이언트 변수
+bento_client = None
+
+# 전역 모델 변수들 (호환성을 위해 유지)
+face_detector = None
+face_recognizer = None
+embedding_db = None
+
+# Swagger UI 설정
+swagger_config = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": "apispec_1",
+            "route": "/apispec_1.json",
+            "rule_filter": lambda rule: True,
+            "model_filter": lambda tag: True,
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/apidocs/"
+}
+
+swagger_template = {
+    "swagger": "2.0",
+    "info": {
+        "title": "CCTV 용의자 식별 시스템 API",
+        "description": "RetinaFace + ArcFace 기반 얼굴 인식 시스템",
+        "version": "1.0.0",
+        "contact": {
+            "name": "CCTV 프로젝트 팀",
+            "email": "project@example.com"
+        }
+    },
+    "host": "localhost:5000",
+    "basePath": "/api",
+    "schemes": ["http", "https"],
+    "tags": [
+        {"name": "detection", "description": "얼굴 감지 및 인식"},
+        {"name": "suspects", "description": "용의자 관리"},
+        {"name": "upload", "description": "파일 업로드"},
+        {"name": "system", "description": "시스템 상태"}
+    ]
+}
+
+swagger = Swagger(app, config=swagger_config, template=swagger_template)
+
 # 설정
-app.config['UPLOAD_FOLDER'] = 'data/videos'
+app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'videos')
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB 제한
-app.config['ALLOWED_EXTENSIONS'] = {'mp4', 'avi', 'mov', 'wmv'}
+app.config['ALLOWED_EXTENSIONS'] = {'mp4', 'avi', 'mov', 'mkv'}
 
 # 전역 변수 - 모델 인스턴스
 face_detector = None
@@ -41,76 +88,121 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-def initialize_models():
-    """AI 모델들 초기화"""
-    # ===============================================================================
-    # **중요: 실제 AI 모델 설치 및 초기화 필요**
-    # ===============================================================================
-    # TODO: InsightFace 라이브러리 설치 필요: pip install insightface
-    # TODO: 모델 파일 자동 다운로드 및 캐싱 구현
-    # TODO: GPU/CPU 환경 자동 감지 및 최적화
-    # ===============================================================================
-    global face_detector, face_recognizer, embedding_db
+def initialize_bento_client():
+    """BentoML 클라이언트 초기화"""
+    global bento_client
     
-    print("🔧 AI 모델 초기화 중...")
+    print("🔧 BentoML 클라이언트 초기화 중...")
     
     try:
-        # TODO: 실제 AI 모델 구현 필요
-        # 1. 얼굴 검출 모델 (RetinaFace) 로드
-        # face_detector = FaceDetector()
-        print("⚠️ RetinaFace 얼굴 검출 모델 - 미구현")
+        # BentoML 서비스 URL 설정 (환경변수 또는 기본값)
+        service_url = os.getenv('BENTOML_SERVICE_URL') or 'http://localhost:3000'
+        bento_client = BentoMLClient(service_url)
         
-        # 2. 얼굴 인식 모델 (ArcFace) 로드  
-        # face_recognizer = FaceRecognizer()
-        print("⚠️ ArcFace 얼굴 인식 모델 - 미구현")
+        # 서비스 연결 테스트
+        status = bento_client.get_service_status()
+        if status.get("status") == "healthy":
+            print(f"✅ BentoML 서비스 연결 성공: {service_url}")
+        else:
+            print(f"⚠️ BentoML 서비스 연결 실패, 폴백 모드로 동작: {service_url}")
+            print(f"   상태: {status}")
         
-        # 3. 임베딩 데이터베이스 초기화
-        # embedding_db = EmbeddingDatabase()
-        print("⚠️ 임베딩 데이터베이스 - 미구현")
-        
-        # 4. 기본 용의자 데이터 로드
-        # embedding_db.load_default_suspects()
-        print("⚠️ 기본 용의자 데이터 로드 - 미구현")
-        
-        return True  # 개발 모드에서는 True 반환
+        return True
         
     except Exception as e:
-        print(f"❌ 모델 초기화 실패: {str(e)}")
+        print(f"❌ BentoML 클라이언트 초기화 실패: {str(e)}")
+        service_url = 'http://localhost:3000'
+        bento_client = BentoMLClient(service_url)  # 기본 설정으로 생성
         return False
 
 @app.route('/')
 def index():
     """메인 페이지 - HTML 파일 서빙"""
     try:
-        with open('cctv_suspect_identification.html', 'r', encoding='utf-8') as f:
+        # 프로젝트 루트에서 HTML 파일 찾기
+        html_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'cctv_suspect_identification.html')
+        with open(html_path, 'r', encoding='utf-8') as f:
             return f.read()
     except FileNotFoundError:
         return """
         <h1>CCTV 용의자 식별 시스템</h1>
         <p>HTML 파일을 찾을 수 없습니다. cctv_suspect_identification.html 파일을 확인해주세요.</p>
         <p><a href="/api/status">시스템 상태 확인</a></p>
+        <p><a href="/docs/">API 문서</a></p>
         """
 
 @app.route('/api/status')
 def status():
-    """시스템 상태 확인 API"""
-    global face_detector, face_recognizer, embedding_db
+    """
+    시스템 상태 확인 API
+    ---
+    tags:
+      - system
+    summary: 시스템 상태 및 모델 준비 상태 확인
+    description: AI 모델의 로드 상태와 데이터베이스 연결 상태를 확인합니다.
+    responses:
+      200:
+        description: 시스템 상태 정보
+        schema:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+              description: 요청 시간
+            models:
+              type: object
+              properties:
+                face_detector:
+                  type: boolean
+                  description: 얼굴 검출 모델 준비 상태
+                face_recognizer:
+                  type: boolean
+                  description: 얼굴 인식 모델 준비 상태
+                embedding_db:
+                  type: boolean
+                  description: 임베딩 데이터베이스 준비 상태
+            database:
+              type: object
+              properties:
+                suspects_count:
+                  type: integer
+                  description: 등록된 용의자 수
+                embeddings_loaded:
+                  type: boolean
+                  description: 임베딩 데이터 로드 상태
+            system:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: ["ready", "initializing", "error"]
+                  description: 전체 시스템 상태
+    """
+    global bento_client
+    
+    # BentoML 클라이언트를 통해 서비스 상태 확인
+    bento_service_status = False
+    if bento_client:
+        service_status = bento_client.get_service_status()
+        bento_service_status = service_status.get("status") == "running"
     
     status_info = {
         'timestamp': datetime.now().isoformat(),
         'models': {
-            'face_detector': face_detector is not None,
-            'face_recognizer': face_recognizer is not None,
-            'embedding_db': embedding_db is not None
+            'face_detector': bento_service_status,
+            'face_recognizer': bento_service_status,
+            'embedding_db': bento_service_status
         },
         'database': {
-            'suspects_count': embedding_db.get_suspects_count() if embedding_db else 0,
-            'embeddings_loaded': embedding_db.is_loaded() if embedding_db else False
+            'suspects_count': 4,  # 현재 등록된 용의자 수 (criminal, normal01, normal02, normal03)
+            'embeddings_loaded': bento_service_status
         },
         'system': {
             'opencv_version': cv2.__version__,
             'upload_folder': app.config['UPLOAD_FOLDER'],
-            'max_file_size_mb': app.config['MAX_CONTENT_LENGTH'] // (1024*1024)
+            'max_file_size_mb': app.config['MAX_CONTENT_LENGTH'] // (1024*1024),
+            'bento_service_connected': bento_service_status
         }
     }
     
@@ -118,78 +210,160 @@ def status():
 
 @app.route('/api/detect_frame', methods=['POST'])
 def detect_frame():
-    """단일 프레임에서 얼굴 감지 및 인식"""
-    # ===============================================================================
-    # **중요: 실제 얼굴 인식 파이프라인 구현 필요**
-    # ===============================================================================
-    # TODO: Base64 이미지 디코딩 및 전처리 구현
-    # TODO: RetinaFace 얼굴 검출 연동
-    # TODO: ArcFace 특징 추출 연동
-    # TODO: 실시간 매칭 및 임계값 설정
-    # TODO: 검출 결과 로깅 및 알림 시스템
-    # ===============================================================================
-    global face_detector, face_recognizer, embedding_db
+    """
+    단일 프레임에서 얼굴 감지 및 인식
+    ---
+    tags:
+      - detection
+    summary: 실시간 프레임 얼굴 감지 및 인식
+    description: 카메라나 이미지에서 얼굴을 감지하고 용의자와 매칭합니다.
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    parameters:
+      - name: frame_data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            image:
+              type: string
+              format: base64
+              description: Base64로 인코딩된 이미지 데이터
+            timestamp:
+              type: string
+              format: date-time
+              description: 프레임 타임스탬프
+            camera_id:
+              type: string
+              description: 카메라 ID
+              default: "main_camera"
+    responses:
+      200:
+        description: 얼굴 감지 결과
+        schema:
+          type: object
+          properties:
+            detected_faces:
+              type: array
+              items:
+                type: object
+                properties:
+                  bbox:
+                    type: array
+                    items:
+                      type: number
+                    description: 경계 박스 [x1, y1, x2, y2]
+                  confidence:
+                    type: number
+                    description: 감지 신뢰도
+                  suspect_match:
+                    type: object
+                    nullable: true
+                    properties:
+                      id:
+                        type: string
+                        description: 용의자 ID
+                      name:
+                        type: string
+                        description: 용의자 이름
+                      similarity:
+                        type: number
+                        description: 유사도 (0-1)
+                      is_criminal:
+                        type: boolean
+                        description: 범죄자 여부
+                      risk_level:
+                        type: string
+                        enum: ["low", "medium", "high"]
+                        description: 위험 등급
+            processing_time:
+              type: number
+              description: 처리 시간 (밀리초)
+            timestamp:
+              type: string
+              format: date-time
+              description: 처리 완료 시간
+      400:
+        description: 잘못된 요청 (이미지 데이터 없음)
+      500:
+        description: 서버 오류 (모델 초기화 실패 등)
+    """
+    global bento_client
     
     try:
+        # BentoML 클라이언트 확인
+        if not bento_client:
+            return jsonify({
+                'success': False,
+                'error': 'AI 서비스가 연결되지 않았습니다.',
+                'timestamp': datetime.now().isoformat()
+            }), 500
+        
         # Base64 이미지 데이터 받기
         data = request.get_json()
         if 'image' not in data:
-            return jsonify({'error': 'No image data provided'}), 400
+            return jsonify({
+                'success': False,
+                'error': '이미지 데이터가 제공되지 않았습니다.'
+            }), 400
             
-        # Base64 디코딩
-        image_data = base64.b64decode(data['image'].split(',')[1])
-        nparr = np.frombuffer(image_data, np.uint8)
-        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        image_data = data['image']
         
-        if frame is None:
-            return jsonify({'error': 'Invalid image data'}), 400
-            
-        # 선택된 용의자 ID
+        # 선택된 용의자 ID와 임계값
         target_suspect_id = data.get('target_suspect_id', '1')
+        detection_threshold = data.get('detection_threshold', 0.8)
+        matching_threshold = data.get('matching_threshold', 0.7)
         
-        # 1. 얼굴 검출 (RetinaFace)
-        faces = face_detector.detect_faces(frame)
+        # BentoML 서비스로 용의자 인식 요청
+        result = bento_client.recognize_suspects(
+            image_data=image_data,
+            detection_threshold=detection_threshold,
+            matching_threshold=matching_threshold
+        )
         
-        results = []
-        for face in faces:
-            bbox, landmarks, confidence = face
+        if not result.get('success'):
+            return jsonify({
+                'success': False,
+                'error': result.get('error', '용의자 인식에 실패했습니다.'),
+                'timestamp': datetime.now().isoformat()
+            }), 500
+        
+        # 결과 포맷팅
+        detections = []
+        recognition_results = result.get('recognition_results', [])
+        
+        for recognition in recognition_results:
+            face_bbox = recognition.get('face_bbox', [])
+            suspect_match = recognition.get('suspect_match', {})
             
-            # 2. 얼굴 영역 추출
-            x1, y1, x2, y2 = bbox.astype(int)
-            face_roi = frame[y1:y2, x1:x2]
-            
-            if face_roi.size == 0:
-                continue
-                
-            # 3. 얼굴 특징 추출 (ArcFace)
-            embedding = face_recognizer.extract_embedding(face_roi)
-            
-            # 4. 데이터베이스와 매칭
-            match_result = embedding_db.match_embedding(embedding, target_suspect_id)
-            
-            # 5. 결과 저장
-            result = {
-                'bbox': bbox.tolist(),
-                'confidence': float(confidence),
-                'match': match_result,
+            detection = {
+                'bbox': face_bbox,
+                'confidence': recognition.get('detection_confidence', 0.0),
+                'suspect_match': suspect_match if suspect_match.get('similarity', 0) >= matching_threshold else None,
                 'timestamp': datetime.now().isoformat()
             }
-            results.append(result)
-            
+            detections.append(detection)
+        
         return jsonify({
             'success': True,
-            'detections': results,
+            'detected_faces': detections,
+            'processing_time_ms': result.get('processing_time_ms', 0),
+            'timestamp': datetime.now().isoformat(),
             'frame_info': {
-                'width': frame.shape[1],
-                'height': frame.shape[0],
-                'faces_detected': len(results)
+                'total_faces': len(detections),
+                'matched_faces': len([d for d in detections if d['suspect_match']]),
+                'target_suspect_id': target_suspect_id
             }
         })
         
     except Exception as e:
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f'서버 오류: {str(e)}',
+            'timestamp': datetime.now().isoformat()
         }), 500
 
 @app.route('/api/suspects')
@@ -280,12 +454,13 @@ def too_large(e):
 
 if __name__ == '__main__':
     # 디렉터리 생성
-    os.makedirs('data/videos', exist_ok=True)
-    os.makedirs('data/suspects', exist_ok=True)
-    os.makedirs('data/embeddings', exist_ok=True)
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    os.makedirs(os.path.join(base_dir, 'data', 'videos'), exist_ok=True)
+    os.makedirs(os.path.join(base_dir, 'data', 'suspects'), exist_ok=True)
+    os.makedirs(os.path.join(base_dir, 'data', 'embeddings'), exist_ok=True)
     
-    # 모델 초기화
-    if initialize_models():
+    # BentoML 클라이언트 초기화
+    if initialize_bento_client():
         print("🚀 서버 시작 중...")
         app.run(
             host='0.0.0.0',
@@ -294,4 +469,10 @@ if __name__ == '__main__':
             threaded=True
         )
     else:
-        print("❌ 모델 초기화 실패. 서버를 시작할 수 없습니다.")
+        print("⚠️ BentoML 클라이언트 초기화 실패. 폴백 모드로 서버를 시작합니다.")
+        app.run(
+            host='0.0.0.0',
+            port=5000,
+            debug=True,
+            threaded=True
+        )
