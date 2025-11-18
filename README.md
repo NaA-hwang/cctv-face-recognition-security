@@ -126,9 +126,19 @@ google_study/
 
 ## 🔧 기술 스택
 
+### 0. 시스템 요구사항 (Windows)
+```bash
+# Microsoft Visual C++ Build Tools 2019 이상 필요
+# InsightFace 컴파일을 위한 필수 요구사항
+# 다운로드: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+
+# Python 3.12.0 이상 권장
+python --version  # Python 3.12.0 확인
+```
+
 ### 1. 환경 설정
 ```bash
-# Python 3.8+ 필요
+# Python 3.12+ 필요
 pip install -r backend/requirements.txt
 ```
 
