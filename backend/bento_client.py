@@ -27,7 +27,7 @@ class BentoMLClient:
     def detect_faces(self, 
                      image_data: str,
                      confidence_threshold: float = 0.8) -> Dict:
-        """얼굴 감지 요청"""
+        """얼굴 감지 요청 - 폴백 모드 비활성화"""
         try:
             response = self.session.post(
                 f"{self.service_url}/detect_faces",
@@ -41,8 +41,14 @@ class BentoMLClient:
             return response.json()
             
         except requests.exceptions.ConnectionError:
-            logger.error("BentoML 서비스에 연결할 수 없습니다.")
-            return self._fallback_detect_response()
+            error_msg = "🔴 BentoML AI 서비스 연결 실패 - 실제 AI 모델이 필요합니다!"
+            logger.error(error_msg)
+            return {
+                "success": False,
+                "error": error_msg,
+                "service_status": "disconnected",
+                "requires_restart": True
+            }
         except Exception as e:
             logger.error(f"얼굴 감지 요청 실패: {e}")
             return {"success": False, "error": str(e)}
@@ -51,7 +57,7 @@ class BentoMLClient:
                           image_data: str,
                           detection_threshold: float = 0.8,
                           matching_threshold: float = 0.7) -> Dict:
-        """용의자 인식 요청"""
+        """용의자 인식 요청 - 폴백 모드 비활성화"""
         try:
             response = self.session.post(
                 f"{self.service_url}/recognize_suspects",
@@ -66,8 +72,15 @@ class BentoMLClient:
             return response.json()
             
         except requests.exceptions.ConnectionError:
-            logger.error("BentoML 서비스에 연결할 수 없습니다.")
-            return self._fallback_recognition_response()
+            error_msg = "🔴 BentoML AI 서비스 연결 실패 - 실제 얼굴 인식이 불가능합니다!"
+            logger.error(error_msg)
+            return {
+                "success": False,
+                "error": error_msg,
+                "service_status": "disconnected",
+                "requires_restart": True,
+                "action_required": "BentoML 서비스를 재시작하세요"
+            }
         except Exception as e:
             logger.error(f"용의자 인식 요청 실패: {e}")
             return {"success": False, "error": str(e)}
@@ -100,7 +113,7 @@ class BentoMLClient:
             return {"success": False, "error": str(e)}
     
     def get_service_status(self) -> Dict:
-        """서비스 상태 확인"""
+        """AI 서비스 상태 확인 - 실제 AI 모델 상태 검증"""
         try:
             # BentoML 서비스 기본 페이지 접근으로 상태 확인
             response = self.session.get(
@@ -111,59 +124,56 @@ class BentoMLClient:
             if response.status_code == 200 and "BentoML" in response.text:
                 return {
                     "status": "healthy",
+                    "message": "✅ BentoML AI 서비스 정상 동작 중",
                     "models": {
                         "face_detector": True,
                         "face_recognizer": True
-                    }
+                    },
+                    "ai_ready": True
                 }
             else:
                 return {
                     "status": "unhealthy",
-                    "error": f"Service returned {response.status_code}"
+                    "message": f"🔴 BentoML 서비스 오류 - HTTP {response.status_code}",
+                    "error": f"Service returned {response.status_code}",
+                    "ai_ready": False
                 }
                 
         except requests.exceptions.ConnectionError:
             return {
                 "status": "disconnected",
-                "error": "BentoML 서비스에 연결할 수 없습니다."
+                "message": "🔴 BentoML AI 서비스 연결 실패",
+                "error": "BentoML 서비스에 연결할 수 없습니다.",
+                "ai_ready": False,
+                "action_required": "bentoml serve 명령으로 AI 서비스를 시작하세요"
             }
         except Exception as e:
             return {
                 "status": "error",
-                "error": str(e)
+                "message": f"🔴 서비스 상태 확인 실패: {str(e)}",
+                "error": str(e),
+                "ai_ready": False
             }
+
+    def ensure_ai_service_ready(self) -> bool:
+        """AI 서비스 준비 상태 확인 - 실제 AI 모델이 로드되었는지 검증"""
+        status = self.get_service_status()
+        if status["status"] == "healthy" and status.get("ai_ready"):
+            logger.info("✅ BentoML AI 서비스 정상 - 실제 AI 모델 사용 가능")
+            return True
+        else:
+            logger.error(f"❌ BentoML AI 서비스 문제: {status.get('message', 'Unknown error')}")
+            return False
     
-    def _fallback_detect_response(self) -> Dict:
-        """서비스 연결 실패 시 폴백 응답"""
+    def get_ai_service_info(self) -> Dict:
+        """AI 서비스 상태 정보 반환 - 폴백 모드 없이 실제 상태만"""
+        status = self.get_service_status()
         return {
-            "success": True,
-            "detected_faces": [
-                {
-                    "bbox": [100, 100, 300, 300],
-                    "confidence": 0.85
-                }
-            ],
-            "processing_time_ms": 0,
-            "note": "BentoML 서비스 연결 실패 - 폴백 모드"
-        }
-    
-    def _fallback_recognition_response(self) -> Dict:
-        """서비스 연결 실패 시 폴백 응답"""
-        return {
-            "success": True,
-            "recognition_results": [
-                {
-                    "face_bbox": [100, 100, 300, 300],
-                    "detection_confidence": 0.85,
-                    "suspect_match": {
-                        "suspect_id": "unknown",
-                        "name": "알 수 없음",
-                        "similarity": 0.0,
-                        "is_criminal": False,
-                        "risk_level": "low"
-                    }
-                }
-            ],
-            "processing_time_ms": 0,
-            "note": "BentoML 서비스 연결 실패 - 폴백 모드"
+            "service_url": self.service_url,
+            "service_status": status["status"],
+            "ai_models_ready": status.get("ai_ready", False),
+            "message": status.get("message", "서비스 상태 불명"),
+            "last_checked": "real-time",
+            "fallback_mode_disabled": True,
+            "requires_real_ai": True
         }

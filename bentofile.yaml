@@ -15,7 +15,7 @@ exclude:
   - "node_modules/"
 
 python:
-  requirements_txt: "./backend/requirements.txt"
+  requirements_txt: "./requirements.txt"
   packages:
     - numpy
     - opencv-python

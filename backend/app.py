@@ -181,32 +181,119 @@ def status():
     """
     global bento_client
     
-    # BentoML 클라이언트를 통해 서비스 상태 확인
-    bento_service_status = False
+    # BentoML 클라이언트를 통해 AI 서비스 상태 확인
+    ai_service_ready = False
+    ai_service_info = {}
     if bento_client:
-        service_status = bento_client.get_service_status()
-        bento_service_status = service_status.get("status") == "running"
+        ai_service_info = bento_client.get_ai_service_info()
+        ai_service_ready = ai_service_info.get("ai_models_ready", False)
+    
+    # 전체 시스템 상태 결정
+    if ai_service_ready:
+        overall_status = "ready"
+    elif bento_client:
+        overall_status = "ai_service_down"
+    else:
+        overall_status = "initializing"
     
     status_info = {
         'timestamp': datetime.now().isoformat(),
         'models': {
-            'face_detector': bento_service_status,
-            'face_recognizer': bento_service_status,
-            'embedding_db': bento_service_status
+            'face_detector': ai_service_ready,
+            'face_recognizer': ai_service_ready,
+            'embedding_db': ai_service_ready
         },
         'database': {
             'suspects_count': 4,  # 현재 등록된 용의자 수 (criminal, normal01, normal02, normal03)
-            'embeddings_loaded': bento_service_status
+            'embeddings_loaded': ai_service_ready
         },
         'system': {
+            'status': overall_status,
             'opencv_version': cv2.__version__,
             'upload_folder': app.config['UPLOAD_FOLDER'],
             'max_file_size_mb': app.config['MAX_CONTENT_LENGTH'] // (1024*1024),
-            'bento_service_connected': bento_service_status
+            'ai_service_url': ai_service_info.get("service_url", "Unknown"),
+            'ai_service_status': ai_service_info.get("service_status", "Unknown"),
+            'fallback_mode_disabled': ai_service_info.get("fallback_mode_disabled", True),
+            'requires_real_ai': ai_service_info.get("requires_real_ai", True)
         }
     }
     
     return jsonify(status_info)
+
+@app.route('/api/ai-service/health')
+def ai_service_health():
+    """
+    AI 서비스 전용 상태 확인 - 폴백 모드 비활성화 검증
+    ---
+    tags:
+      - system
+    summary: AI 서비스 상태 및 실제 모델 동작 확인
+    description: BentoML AI 서비스가 실제 AI 모델로 동작 중인지 확인하고 폴백 모드가 비활성화되었는지 검증
+    responses:
+      200:
+        description: AI 서비스 상태 정보
+        schema:
+          type: object
+          properties:
+            ai_service_ready:
+              type: boolean
+              description: AI 서비스 준비 상태
+            real_ai_models_active:
+              type: boolean
+              description: 실제 AI 모델 활성 상태
+            fallback_mode_disabled:
+              type: boolean
+              description: 폴백 모드 비활성화 여부
+            service_details:
+              type: object
+              description: 상세 서비스 정보
+      503:
+        description: AI 서비스 사용 불가
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              description: 오류 메시지
+            action_required:
+              type: string
+              description: 필요한 조치
+    """
+    global bento_client
+    
+    if not bento_client:
+        return jsonify({
+            "ai_service_ready": False,
+            "real_ai_models_active": False,
+            "fallback_mode_disabled": True,
+            "error": "BentoML 클라이언트가 초기화되지 않았습니다",
+            "action_required": "Flask 서버 재시작 필요"
+        }), 503
+    
+    # AI 서비스 준비 상태 확인
+    is_ready = bento_client.ensure_ai_service_ready()
+    ai_info = bento_client.get_ai_service_info()
+    
+    if is_ready:
+        return jsonify({
+            "ai_service_ready": True,
+            "real_ai_models_active": True,
+            "fallback_mode_disabled": True,
+            "service_details": ai_info,
+            "status": "✅ 실제 AI 모델 동작 중 - 폴백 모드 없음",
+            "timestamp": datetime.now().isoformat()
+        })
+    else:
+        return jsonify({
+            "ai_service_ready": False,
+            "real_ai_models_active": False,
+            "fallback_mode_disabled": True,
+            "service_details": ai_info,
+            "error": "🔴 AI 서비스 연결 실패 - 실제 AI 모델 사용 불가",
+            "action_required": "bentoml serve 명령으로 AI 서비스를 재시작하세요",
+            "timestamp": datetime.now().isoformat()
+        }), 503
 
 @app.route('/api/detect_frame', methods=['POST'])
 def detect_frame():
