@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <!-- HTML 문서의 기본 메타 정보 설정 -->
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <!-- 반응형 웹 디자인을 위한 뷰포트 설정 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RetinaFace FastAPI 데모</title>
+    <style>
+      /* CSS 변수 및 전역 스타일 설정 */
+      :root {
+        /* 다크/라이트 모드 지원 */
+        color-scheme: light dark;
+        /* 한글 폰트 우선순위 설정 */
+        font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      }
+
+      /* 전체 페이지 배경 및 텍스트 색상 설정 (다크 테마) */
+      body {
+        margin: 0;
+        padding: 0;
+        background: #0d1117;
+        color: #e6edf3;
+      }
+
+      /* 메인 컨테이너: 최대 너비 제한 및 중앙 정렬 */
+      .container {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 4rem;
+        text-align: center;
+      }
+
+      /* 제목 스타일 */
+      h1 {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+      }
+
+      /* 설명 텍스트 스타일 (회색) */
+      p.description {
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        color: #8b949e;
+      }
+
+      /* 파일 업로드 폼 스타일 */
+      form {
+        border: 1px dashed #30363d;
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        margin-bottom: 1.5rem;
+        background: #161b22;
+      }
+
+      /* 파일 입력 필드: 중앙 정렬 */
+      input[type="file"] {
+        display: block;
+        margin: 0 auto 1rem;
+      }
+
+      /* 제출 버튼 스타일 (초록색) */
+      button {
+        border: none;
+        padding: 0.75rem 1.25rem;
+        border-radius: 999px;
+        font-size: 1rem;
+        cursor: pointer;
+        color: #fff;
+        background-color: #238636;
+      }
+
+      /* 버튼 호버 효과 */
+      button:hover {
+        opacity: 0.9;
+      }
+
+      /* 결과 메시지 스타일 */
+      .message {
+        margin-bottom: 1rem;
+        font-weight: 600;
+      }
+
+      /* 감지 결과 이미지 스타일 (반응형) */
+      .result img {
+        width: 100%;
+        height: auto;
+        border-radius: 0.5rem;
+        border: 1px solid #30363d;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <!-- 페이지 제목 및 설명 -->
+      <h1>RetinaFace FastAPI 데모</h1>
+      <p class="description">FastAPI와 RetinaFace로 얼굴을 빠르게 감지하세요.</p>
+
+      <!-- 이미지 업로드 폼 -->
+      <!-- action: 폼 제출 시 /detect 엔드포인트로 POST 요청 -->
+      <!-- enctype: 파일 업로드를 위해 multipart/form-data 필수 -->
+      <form action="/detect" method="post" enctype="multipart/form-data">
+        <!-- 이미지 파일만 선택 가능하도록 accept 속성 설정 -->
+        <input type="file" name="file" accept="image/*" required />
+        <button type="submit">얼굴 감지 실행</button>
+      </form>
+
+      <!-- Jinja2 템플릿 구문: message 변수가 있으면 메시지 표시 -->
+      {% if message %}
+      <p class="message">{{ message }}</p>
+      {% endif %}
+
+      <!-- Jinja2 템플릿 구문: result_image 변수가 있으면 결과 이미지 표시 -->
+      <!-- base64 인코딩된 이미지를 data URI로 직접 표시 -->
+      {% if result_image %}
+      <section class="result">
+        <h2>결과</h2>
+        <img
+          src="data:image/jpeg;base64,{{ result_image }}"
+          alt="Detection result"
+        />
+      </section>
+      {% endif %}
+    </main>
+  </body>
+</html>
