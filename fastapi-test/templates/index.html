@@ -89,22 +89,113 @@
         border-radius: 0.5rem;
         border: 1px solid #30363d;
       }
+
+      /* 영상 결과 스타일 */
+      .result video {
+        width: 100%;
+        height: auto;
+        border-radius: 0.5rem;
+        border: 1px solid #30363d;
+      }
+
+      /* 다운로드 버튼 스타일 */
+      .download-btn {
+        display: inline-block;
+        margin-top: 1rem;
+        padding: 0.75rem 1.25rem;
+        border-radius: 999px;
+        font-size: 1rem;
+        cursor: pointer;
+        color: #fff;
+        background-color: #238636;
+        text-decoration: none;
+        border: none;
+      }
+
+      .download-btn:hover {
+        opacity: 0.9;
+      }
+
+      /* 탭 스타일 */
+      .tabs {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid #30363d;
+      }
+
+      .tab {
+        padding: 0.75rem 1.5rem;
+        cursor: pointer;
+        background: none;
+        border: none;
+        color: #8b949e;
+        font-size: 1rem;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+      }
+
+      .tab:hover {
+        color: #e6edf3;
+      }
+
+      .tab.active {
+        color: #238636;
+        border-bottom-color: #238636;
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
     </style>
   </head>
   <body>
     <main class="container">
       <!-- 페이지 제목 및 설명 -->
       <h1>RetinaFace FastAPI 데모</h1>
-      <p class="description">FastAPI와 RetinaFace로 얼굴을 빠르게 감지하세요.</p>
+      <p class="description">FastAPI와 RetinaFace로 이미지 또는 영상에서 얼굴을 빠르게 감지하세요.</p>
+
+      <!-- 탭 메뉴 -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('image')">이미지</button>
+        <button class="tab" onclick="switchTab('video')">영상</button>
+      </div>
 
       <!-- 이미지 업로드 폼 -->
-      <!-- action: 폼 제출 시 /detect 엔드포인트로 POST 요청 -->
-      <!-- enctype: 파일 업로드를 위해 multipart/form-data 필수 -->
-      <form action="/detect" method="post" enctype="multipart/form-data">
-        <!-- 이미지 파일만 선택 가능하도록 accept 속성 설정 -->
-        <input type="file" name="file" accept="image/*" required />
-        <button type="submit">얼굴 감지 실행</button>
-      </form>
+      <div id="image-tab" class="tab-content active">
+        <form action="/detect" method="post" enctype="multipart/form-data">
+          <!-- 이미지 파일만 선택 가능하도록 accept 속성 설정 -->
+          <input type="file" name="file" accept="image/*" required />
+          <button type="submit">얼굴 감지 실행</button>
+        </form>
+        <!-- 예시 이미지 사용 버튼 -->
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #30363d;">
+          <p style="color: #8b949e; margin-bottom: 0.5rem; font-size: 0.9rem;">또는 예시 이미지 사용:</p>
+          <a href="/detect_example_image" class="download-btn" style="background-color: #1f6feb;">
+            예시 이미지로 테스트 (newjeans.jpg)
+          </a>
+        </div>
+      </div>
+
+      <!-- 영상 업로드 폼 -->
+      <div id="video-tab" class="tab-content">
+        <form action="/detect_video" method="post" enctype="multipart/form-data">
+          <!-- 영상 파일만 선택 가능하도록 accept 속성 설정 -->
+          <input type="file" name="file" accept="video/*" required />
+          <button type="submit">영상 얼굴 감지 실행</button>
+        </form>
+        <!-- 예시 영상 사용 버튼 -->
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #30363d;">
+          <p style="color: #8b949e; margin-bottom: 0.5rem; font-size: 0.9rem;">또는 예시 영상 사용:</p>
+          <a href="/detect_example_video" class="download-btn" style="background-color: #1f6feb;">
+            예시 영상으로 테스트 (video.mp4)
+          </a>
+        </div>
+      </div>
 
       <!-- Jinja2 템플릿 구문: message 변수가 있으면 메시지 표시 -->
       {% if message %}
@@ -122,6 +213,54 @@
         />
       </section>
       {% endif %}
+
+      <!-- Jinja2 템플릿 구문: result_video 변수가 있으면 결과 영상 표시 -->
+      {% if result_video %}
+      <section class="result">
+        <h2>결과 영상</h2>
+        {% if total_frames %}
+        <p style="color: #8b949e; margin-bottom: 0.5rem;">
+          총 {{ total_frames }}개 프레임 중 {{ frames_with_faces }}개 프레임에서 얼굴 감지
+          {% if processing_time %}
+          (처리 시간: {{ "%.2f" % processing_time }}초)
+          {% endif %}
+        </p>
+        {% endif %}
+        <video controls>
+          <source src="data:video/mp4;base64,{{ result_video }}" type="video/mp4" />
+          브라우저가 비디오 태그를 지원하지 않습니다.
+        </video>
+        <a
+          href="data:video/mp4;base64,{{ result_video }}"
+          download="detected_faces.mp4"
+          class="download-btn"
+        >
+          영상 다운로드
+        </a>
+      </section>
+      {% endif %}
     </main>
+
+    <script>
+      // 탭 전환 함수
+      function switchTab(tabName) {
+        // 모든 탭과 콘텐츠 비활성화
+        document.querySelectorAll('.tab').forEach(tab => {
+          tab.classList.remove('active');
+        });
+        document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.remove('active');
+        });
+
+        // 선택된 탭과 콘텐츠 활성화
+        if (tabName === 'image') {
+          document.querySelector('.tab:first-child').classList.add('active');
+          document.getElementById('image-tab').classList.add('active');
+        } else {
+          document.querySelector('.tab:last-child').classList.add('active');
+          document.getElementById('video-tab').classList.add('active');
+        }
+      }
+    </script>
   </body>
 </html>
