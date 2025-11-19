@@ -13,18 +13,9 @@ RetinaFace를 활용해 업로드한 이미지에서 얼굴을 감지하고, 감
 ## 준비 사항
 
 1. `retina-face-0.0.17.tar.gz`를 다운받습니다.
-2. `requirements.txt`의 line 97의 `///Users/yunha_hwa_ng/Document...`에 다운받은 retina-
-3. RetinaFace가 설치된 `retinaface-py311` 가상환경을 활성화합니다.
-   ```bash
-   conda activate retinaface-py311
-   # 또는 해당 환경을 활성화하는 명령을 사용하세요.
-   ```
-4. FastAPI와 웹 서버 실행에 필요한 라이브러리를 설치합니다.
-   ```bash
-   pip install fastapi uvicorn python-multipart pillow numpy
-   ```
-
-   RetinaFace는 이미 가상환경에 설치되어 있다고 가정합니다.
+2. `requirements.txt`의 line 97의 `///Users/yunha_hwa_ng/Document...` 대신 다운받은 `retina-face-0.0.17.tar.gz`의 경로를 입력합니다.
+3. 새로운 가상환경을 만들어서 그 가상환경에 `pip install -r requirements.txt` 를 설치하는 걸 추천합니다.
+4. 가상환경을 활성화합니다.
 
 ## 실행 방법
 
