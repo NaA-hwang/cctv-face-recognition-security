@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# 출력 파일
+outputs/embeddings/*.npy
+
+# 결과 파일 (샘플 제외)
+outputs/matches_multi/*
+!outputs/matches_multi/cctv_f*.jpg  # 샘플 이미지는 포함
+outputs/logs/*.csv
+!outputs/logs/cctv_matches.csv  # 샘플 로그는 포함
+
+# 영상 파일 (용량이 크므로)
+images/*.MOV
+images/*.mp4
+images/*.avi
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
