@@ -116,6 +116,23 @@
         opacity: 0.9;
       }
 
+      /* 예시 CTA 공통 스타일 */
+      .example-section {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #30363d;
+      }
+
+      .example-note {
+        color: #8b949e;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+      }
+
+      .download-btn.example {
+        background-color: #1f6feb;
+      }
+
       /* 탭 스타일 */
       .tabs {
         display: flex;
@@ -173,9 +190,9 @@
           <button type="submit">얼굴 감지 실행</button>
         </form>
         <!-- 예시 이미지 사용 버튼 -->
-        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #30363d;">
-          <p style="color: #8b949e; margin-bottom: 0.5rem; font-size: 0.9rem;">또는 예시 이미지 사용:</p>
-          <a href="/detect_example_image" class="download-btn" style="background-color: #1f6feb;">
+        <div class="example-section">
+          <p class="example-note">또는 예시 이미지 사용:</p>
+          <a href="/detect_example_image" class="download-btn example">
             예시 이미지로 테스트 (newjeans.jpg)
           </a>
         </div>
@@ -189,10 +206,10 @@
           <button type="submit">영상 얼굴 감지 실행</button>
         </form>
         <!-- 예시 영상 사용 버튼 -->
-        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #30363d;">
-          <p style="color: #8b949e; margin-bottom: 0.5rem; font-size: 0.9rem;">또는 예시 영상 사용:</p>
-          <a href="/detect_example_video" class="download-btn" style="background-color: #1f6feb;">
-            예시 영상으로 테스트 (video.mp4)
+        <div class="example-section">
+          <p class="example-note">또는 예시 영상 사용:</p>
+          <a href="/detect_example_video" class="download-btn example">
+            예시 영상으로 테스트 (vi deo.mp4)
           </a>
         </div>
       </div>
