@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <!-- 반응형 웹 디자인을 위한 뷰포트 설정 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RetinaFace FastAPI 데모</title>
+    <title>InsightFace FastAPI 데모</title>
     <style>
       /* CSS 변수 및 전역 스타일 설정 */
       :root {
@@ -173,8 +173,8 @@
   <body>
     <main class="container">
       <!-- 페이지 제목 및 설명 -->
-      <h1>RetinaFace FastAPI 데모</h1>
-      <p class="description">FastAPI와 RetinaFace로 이미지 또는 영상에서 얼굴을 빠르게 감지하세요.</p>
+      <h1>InsightFace 얼굴 인식 데모</h1>
+      <p class="description">InsightFace를 사용하여 특정 얼굴을 이미지 또는 영상에서 찾아보세요.</p>
 
       <!-- 탭 메뉴 -->
       <div class="tabs">
@@ -185,33 +185,43 @@
       <!-- 이미지 업로드 폼 -->
       <div id="image-tab" class="tab-content active">
         <form action="/detect" method="post" enctype="multipart/form-data">
-          <!-- 이미지 파일만 선택 가능하도록 accept 속성 설정 -->
-          <input type="file" name="file" accept="image/*" required />
-          <button type="submit">얼굴 감지 실행</button>
+          <!-- 찾을 얼굴 이미지 입력 -->
+          <div style="margin-bottom: 1rem;">
+            <label for="target_face" style="display: block; margin-bottom: 0.5rem; color: #e6edf3;">
+              찾을 얼굴 이미지:
+            </label>
+            <input type="file" id="target_face" name="target_face" accept="image/*" required />
+          </div>
+          <!-- 대상 이미지 입력 -->
+          <div style="margin-bottom: 1rem;">
+            <label for="search_image" style="display: block; margin-bottom: 0.5rem; color: #e6edf3;">
+              여러 얼굴이 포함된 이미지:
+            </label>
+            <input type="file" id="search_image" name="search_image" accept="image/*" required />
+          </div>
+          <button type="submit">얼굴 찾기 실행</button>
         </form>
-        <!-- 예시 이미지 사용 버튼 -->
-        <div class="example-section">
-          <p class="example-note">또는 예시 이미지 사용:</p>
-          <a href="/detect_example_image" class="download-btn example">
-            예시 이미지로 테스트 (newjeans.jpg)
-          </a>
-        </div>
       </div>
 
       <!-- 영상 업로드 폼 -->
       <div id="video-tab" class="tab-content">
         <form action="/detect_video" method="post" enctype="multipart/form-data">
-          <!-- 영상 파일만 선택 가능하도록 accept 속성 설정 -->
-          <input type="file" name="file" accept="video/*" required />
-          <button type="submit">영상 얼굴 감지 실행</button>
+          <!-- 찾을 얼굴 이미지 입력 -->
+          <div style="margin-bottom: 1rem;">
+            <label for="target_face_video" style="display: block; margin-bottom: 0.5rem; color: #e6edf3;">
+              찾을 얼굴 이미지:
+            </label>
+            <input type="file" id="target_face_video" name="target_face" accept="image/*" required />
+          </div>
+          <!-- 대상 영상 입력 -->
+          <div style="margin-bottom: 1rem;">
+            <label for="search_video" style="display: block; margin-bottom: 0.5rem; color: #e6edf3;">
+              여러 얼굴이 포함된 영상:
+            </label>
+            <input type="file" id="search_video" name="search_video" accept="video/*" required />
+          </div>
+          <button type="submit">영상에서 얼굴 찾기 실행</button>
         </form>
-        <!-- 예시 영상 사용 버튼 -->
-        <div class="example-section">
-          <p class="example-note">또는 예시 영상 사용:</p>
-          <a href="/detect_example_video" class="download-btn example">
-            예시 영상으로 테스트 (vi deo.mp4)
-          </a>
-        </div>
       </div>
 
       <!-- Jinja2 템플릿 구문: message 변수가 있으면 메시지 표시 -->
@@ -224,6 +234,13 @@
       {% if result_image %}
       <section class="result">
         <h2>결과</h2>
+        {% if matched_faces is not none %}
+        <p style="color: #8b949e; margin-bottom: 0.5rem;">
+          총 {{ faces_found }}개의 얼굴 중 <span style="color: #ff0000; font-weight: bold;">{{ matched_faces }}개의 얼굴이 매칭</span>되었습니다.
+          <br>
+          <small style="color: #6b7280;">빨간색 박스: 매칭된 얼굴, 초록색 박스: 일반 얼굴</small>
+        </p>
+        {% endif %}
         <img
           src="data:image/jpeg;base64,{{ result_image }}"
           alt="Detection result"
@@ -237,10 +254,15 @@
         <h2>결과 영상</h2>
         {% if total_frames %}
         <p style="color: #8b949e; margin-bottom: 0.5rem;">
-          총 {{ total_frames }}개 프레임 중 {{ frames_with_faces }}개 프레임에서 얼굴 감지
+          총 {{ total_frames }}개 프레임 중 {{ frames_with_faces }}개 프레임에서 얼굴 감지,
+          {% if frames_with_matches is not none %}
+          <span style="color: #ff0000; font-weight: bold;">{{ frames_with_matches }}개 프레임에서 매칭된 얼굴 발견</span>
+          {% endif %}
           {% if processing_time %}
           (처리 시간: {{ "%.2f" % processing_time }}초)
           {% endif %}
+          <br>
+          <small style="color: #6b7280;">빨간색 박스: 매칭된 얼굴, 초록색 박스: 일반 얼굴</small>
         </p>
         {% endif %}
         <video controls>
